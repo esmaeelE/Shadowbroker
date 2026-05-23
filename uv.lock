@@ -74,7 +74,7 @@ wheels = [
 
 [[package]]
 name = "backend"
-version = "0.9.79"
+version = "0.9.8"
 source = { editable = "backend" }
 dependencies = [
     { name = "apscheduler" },
@@ -2231,7 +2231,7 @@ wheels = [
 
 [[package]]
 name = "shadowbroker"
-version = "0.9.79"
+version = "0.9.8"
 source = { virtual = "." }
 
 [package.metadata]

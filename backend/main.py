@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from json import JSONDecodeError
 
-APP_VERSION = "0.9.79"
+APP_VERSION = "0.9.8"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
