@@ -20,22 +20,22 @@ import {
   Heart,
 } from 'lucide-react';
 
-const CURRENT_VERSION = '0.9.8';
+const CURRENT_VERSION = '0.9.81';
 const STORAGE_KEY = `shadowbroker_changelog_v${CURRENT_VERSION}`;
-const RELEASE_TITLE = 'Cumulative Fuel/CO2, AIS Resilience, and Data-Layer Repair';
+const RELEASE_TITLE = 'Signed Auto-Update + Update Button Race Fix';
 
 const HEADLINE_FEATURES = [
   {
-    icon: <Plane size={20} className="text-orange-400" />,
+    icon: <KeyRound size={20} className="text-purple-400" />,
     accent: 'purple' as const,
-    title: 'Cumulative Fuel & CO2 per Flight',
-    subtitle: 'The aircraft tooltip now shows how much fuel each plane has actually burned in the air, not just the per-hour rate.',
+    title: 'Signed Auto-Update Going Forward (one manual hop)',
+    subtitle: 'After installing v0.9.81, the in-app Update button finally works end-to-end. This release establishes a fresh signing key — every release from here is a one-click upgrade.',
     details: [
-      'New flight_observations module tracks first-seen-at per ICAO24 hex. Multiplies the model-based rate by elapsed observation time to produce running totals — FUEL BURNED (gal) and CO2 EMITTED (kg) — in the EMISSIONS ESTIMATE block.',
-      '15-minute gap between sightings resets the session (treated as a new flight: landed and took off again, or transited a dead zone). The cumulative counter survives trail pruning so map-rendering lifecycle and emission tracking are independent.',
-      '24-hour clamp defends against clock-skew bugs; per-icao prune every 5 minutes keeps memory bounded. The per-hour rate is still shown as smaller context underneath each cumulative figure.',
+      'tauri.conf.json now carries a fresh minisign pubkey (the previous keypair was generated before v0.9.79 shipped but the matching private key was lost before any release was actually signed, so no release before v0.9.81 has working auto-update).',
+      'The v0.9.81 release artifacts ship with a signed latest.json + .sig files so every install on v0.9.81 or later can verify and apply the next release automatically via the Tauri updater plugin.',
+      'One-time cost: if you are upgrading from v0.9.79 or v0.9.8, the click-Update path falls back to a manual download because the new pubkey does not match the one baked into your install. Click the MANUAL DOWNLOAD button in the update dialog → grab the .msi from the release page → run it → from then on auto-update works in-app.',
     ],
-    callToAction: 'OPEN A FLIGHT TOOLTIP → EMISSIONS ESTIMATE',
+    callToAction: 'CLICK UPDATE → DOWNLOAD MSI ONCE → AUTO-UPDATE FOREVER',
   },
   {
     icon: <Network size={20} className="text-amber-400" />,
@@ -65,6 +65,11 @@ const HEADLINE_FEATURES = [
 
 const NEW_FEATURES = [
   {
+    icon: <Plane size={18} className="text-orange-400" />,
+    title: 'Cumulative Fuel & CO2 per Flight',
+    desc: 'Aircraft tooltip now shows how much fuel each plane has actually burned in the air since first observation, not just the per-hour rate. 15-minute gap between sightings resets the session; 24-hour clamp protects against clock skew; per-icao prune every 5 minutes keeps memory bounded.',
+  },
+  {
     icon: <Plane size={18} className="text-cyan-400" />,
     title: 'Per-Flight Source Attribution',
     desc: 'Every aircraft record now carries a source field (adsb.lol, OpenSky, airplanes.live, adsb.fi) so consumers can attribute the data provider. Pre-fix, adsb.lol records were unmarked while OpenSky records were explicitly tagged, making it look like adsb.lol was unused even though it is the primary source.',
@@ -82,6 +87,8 @@ const NEW_FEATURES = [
 ];
 
 const BUG_FIXES = [
+  'Update button no longer throws "admin_session_required" on desktop installs. The initial updateAction now syncs to Tauri detection at React-init time (window.__TAURI__ is injected before mount), so a click before the async runtime probe completes opens the GitHub release page in a browser instead of POSTing to /api/system/update.',
+  'Desktop installer now bundles defusedxml + PySocks (declared in pyproject.toml but missing from the venv shipped with v0.9.79 and the initial v0.9.8 publish). Fixes the bundled-backend launch crash reported in #319 and #296 (managed_backend_exited_early:exit code: 103).',
   'UAP layer no longer serves 3-year-old NUFORC sightings via the Hugging Face static-mirror fallback (60-day cutoff now applied to the fallback path too).',
   'GPS jamming detection now counts nac_p == 0 (the actual GPS-lost signal) instead of filtering it out as an old-transponder artifact.',
   'GPS jamming thresholds lowered (MIN_AIRCRAFT 5 → 3, MIN_RATIO 0.30 → 0.20) so sparser hotspots clear the bar without losing the 1-aircraft noise cushion.',

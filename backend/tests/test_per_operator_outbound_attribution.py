@@ -240,6 +240,8 @@ class TestNoMonsterUserAgentRemains:
         "ShadowBroker/0.9.79 Finnhub connector",
         "ShadowBroker/0.9.8 local Shodan connector",
         "ShadowBroker/0.9.8 Finnhub connector",
+        "ShadowBroker/0.9.81 local Shodan connector",
+        "ShadowBroker/0.9.81 Finnhub connector",
         "Mozilla/5.0 (compatible; ShadowBroker CCTV proxy)",
     )
 

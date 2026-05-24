@@ -91,7 +91,19 @@ export default function TopRightControls({
   const [manualUpdateUrl, setManualUpdateUrl] = useState(DEFAULT_RELEASES_URL);
   const [releasePageUrl, setReleasePageUrl] = useState(DEFAULT_RELEASES_URL);
   const [dockerCommands, setDockerCommands] = useState('');
-  const [updateAction, setUpdateAction] = useState<UpdateActionKind>('auto_apply');
+  // Pre-detection initial value: the right action depends on the runtime.
+  // For desktop installs (Tauri webview), the default should be
+  // ``manual_download`` so that clicking Update before the async runtime
+  // probe completes opens the release page in a browser instead of POSTing
+  // to /api/system/update — which throws ``admin_session_required`` on
+  // fresh sessions and confused v0.9.79/v0.9.8 users with a cryptic error.
+  // ``window.__TAURI__`` is injected synchronously by Tauri before React
+  // mounts, so this check is safe to do at useState init time.
+  const initialUpdateAction: UpdateActionKind =
+    typeof window !== 'undefined' && (window as { __TAURI__?: unknown }).__TAURI__
+      ? 'manual_download'
+      : 'auto_apply';
+  const [updateAction, setUpdateAction] = useState<UpdateActionKind>(initialUpdateAction);
   const [updateDetail, setUpdateDetail] = useState(AUTO_UPDATE_DETAIL);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
