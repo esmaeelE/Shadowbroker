@@ -577,6 +577,8 @@ ShadowBroker v0.9.7 is composed of three vertically-stacked planes — the **Ope
 | [OSM Nominatim](https://nominatim.openstreetmap.org) | Place name geocoding (LOCATE bar) | On-demand | No |
 | [CARTO Basemaps](https://carto.com) | Dark map tiles | Continuous | No |
 
+**Outbound privacy & audit (#348–#366):** Each self-hosted install uses its own backend IP and per-install User-Agent handle. See [docs/OUTBOUND_DATA.md](docs/OUTBOUND_DATA.md) for what contacts third parties, opt-in/env controls, and accepted tradeoffs (CCTV Referer, basemap CDN, LiveUAMap, etc.).
+
 ---
 
 ## 🚀 Getting Started

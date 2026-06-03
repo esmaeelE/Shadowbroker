@@ -45,6 +45,8 @@ import {
   MapPin,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
+import { useLiveUamapScraperOptIn } from '@/hooks/useLiveUamapScraperOptIn';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { onTileLoadingChange, resetTileLoading } from '@/lib/sentinelHub';
 import packageJson from '../../package.json';
 import { useTheme } from '@/lib/ThemeContext';
@@ -701,6 +703,22 @@ const WorldviewLeftPanel = React.memo(function WorldviewLeftPanel({
   });
   const [sarModalOpen, setSarModalOpen] = useState(false);
   const [sarPendingEnable, setSarPendingEnable] = useState(false);
+
+  const [liveuamapModalOpen, setLiveuamapModalOpen] = useState(false);
+  const [liveuamapPendingEnable, setLiveuamapPendingEnable] = useState<(() => void) | null>(null);
+  const { needsConsentBeforeEnable, confirmOptIn } = useLiveUamapScraperOptIn();
+
+  const withGlobalIncidentsConsent = useCallback(
+    (layerId: string, turningOn: boolean, apply: () => void) => {
+      if (needsConsentBeforeEnable(layerId, turningOn)) {
+        setLiveuamapPendingEnable(() => apply);
+        setLiveuamapModalOpen(true);
+        return;
+      }
+      apply();
+    },
+    [needsConsentBeforeEnable],
+  );
 
   // Auto-detect: if the backend already has Mode B creds configured
   // (via env or a previous runtime save), promote the stored choice to
@@ -1401,13 +1419,20 @@ const WorldviewLeftPanel = React.memo(function WorldviewLeftPanel({
                 const allOn = Object.entries(activeLayers)
                   .filter(([k]) => !excluded.has(k))
                   .every(([, v]) => v);
-                setActiveLayers((prev: ActiveLayers) => {
-                  const next = { ...prev } as ActiveLayers;
-                  for (const k of Object.keys(prev) as Array<keyof ActiveLayers>) {
-                    next[k] = excluded.has(k) ? prev[k] : !allOn;
-                  }
-                  return next;
-                });
+                const enableAll = () => {
+                  setActiveLayers((prev: ActiveLayers) => {
+                    const next = { ...prev } as ActiveLayers;
+                    for (const k of Object.keys(prev) as Array<keyof ActiveLayers>) {
+                      next[k] = excluded.has(k) ? prev[k] : !allOn;
+                    }
+                    return next;
+                  });
+                };
+                if (!allOn) {
+                  withGlobalIncidentsConsent('global_incidents', true, enableAll);
+                } else {
+                  enableAll();
+                }
               }}
             >
               {Object.entries(activeLayers)
@@ -1595,13 +1620,23 @@ const WorldviewLeftPanel = React.memo(function WorldviewLeftPanel({
                                 : 'rgb(100 116 139 / 0.3)',
                           }}
                           onClick={() => {
-                            setActiveLayers((prev: ActiveLayers) => {
-                              const next = { ...prev } as ActiveLayers;
-                              for (const id of sectionLayerIds as Array<keyof ActiveLayers>) {
-                                next[id] = !allOn;
-                              }
-                              return next;
-                            });
+                            const toggleSection = () => {
+                              setActiveLayers((prev: ActiveLayers) => {
+                                const next = { ...prev } as ActiveLayers;
+                                for (const id of sectionLayerIds as Array<keyof ActiveLayers>) {
+                                  next[id] = !allOn;
+                                }
+                                return next;
+                              });
+                            };
+                            if (
+                              !allOn &&
+                              (sectionLayerIds as string[]).includes('global_incidents')
+                            ) {
+                              withGlobalIncidentsConsent('global_incidents', true, toggleSection);
+                            } else {
+                              toggleSection();
+                            }
                           }}
                           title={
                             allOn ? `Disable all ${section.label}` : `Enable all ${section.label}`
@@ -1647,10 +1682,12 @@ const WorldviewLeftPanel = React.memo(function WorldviewLeftPanel({
                                       setSarModalOpen(true);
                                       return;
                                     }
-                                    setActiveLayers((prev: ActiveLayers) => ({
-                                      ...prev,
-                                      [layer.id]: !active,
-                                    }));
+                                    withGlobalIncidentsConsent(layer.id, !active, () => {
+                                      setActiveLayers((prev: ActiveLayers) => ({
+                                        ...prev,
+                                        [layer.id]: !active,
+                                      }));
+                                    });
                                   }}
                                 >
                                   <div className="flex gap-3">
@@ -1953,6 +1990,31 @@ const WorldviewLeftPanel = React.memo(function WorldviewLeftPanel({
         }}
       />
     )}
+    <ConfirmDialog
+      open={liveuamapModalOpen}
+      title="Enable LiveUAMap on this server?"
+      message="Global Incidents includes LiveUAMap pins fetched by your Shadowbroker backend (Playwright). LiveUAMap will see this install's server IP. GDELT headlines load without this step. You can still disable the layer later; revoke server contact via Settings or SHADOWBROKER_ENABLE_LIVEUAMAP_SCRAPER=false."
+      confirmLabel="Enable & turn on layer"
+      cancelLabel="Cancel"
+      danger={false}
+      onCancel={() => {
+        setLiveuamapModalOpen(false);
+        setLiveuamapPendingEnable(null);
+      }}
+      onConfirm={() => {
+        void (async () => {
+          try {
+            await confirmOptIn();
+            liveuamapPendingEnable?.();
+          } catch (e) {
+            console.warn('LiveUAMap opt-in failed:', e);
+          } finally {
+            setLiveuamapModalOpen(false);
+            setLiveuamapPendingEnable(null);
+          }
+        })();
+      }}
+    />
     </>
   );
 });

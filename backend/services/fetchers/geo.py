@@ -20,17 +20,9 @@ def _env_flag(name: str) -> str:
 
 
 def liveuamap_scraper_enabled() -> bool:
-    """Return whether the Playwright-based LiveUAMap scraper should run.
+    from services.liveuamap_settings import liveuamap_scraper_enabled as _enabled
 
-    It is useful enrichment, but it starts a browser/Node driver and must not be
-    allowed to destabilize Windows local startup.
-    """
-    setting = _env_flag("SHADOWBROKER_ENABLE_LIVEUAMAP_SCRAPER")
-    if setting in {"1", "true", "yes", "on"}:
-        return True
-    if setting in {"0", "false", "no", "off"}:
-        return False
-    return os.name != "nt"
+    return _enabled()
 
 
 # ---------------------------------------------------------------------------
@@ -210,10 +202,17 @@ def update_liveuamap():
     if not is_any_active("global_incidents"):
         return
     if not liveuamap_scraper_enabled():
-        logger.info(
-            "Liveuamap scraper disabled for this runtime; set "
-            "SHADOWBROKER_ENABLE_LIVEUAMAP_SCRAPER=1 to opt in."
-        )
+        from services.liveuamap_settings import liveuamap_requires_ui_opt_in
+
+        if liveuamap_requires_ui_opt_in():
+            logger.info(
+                "Liveuamap scraper disabled: enable Global Incidents in the UI to "
+                "consent, or set SHADOWBROKER_ENABLE_LIVEUAMAP_SCRAPER=1."
+            )
+        else:
+            logger.info(
+                "Liveuamap scraper disabled; set SHADOWBROKER_ENABLE_LIVEUAMAP_SCRAPER=1 to opt in."
+            )
         return
     logger.info("Running scheduled Liveuamap scraper...")
     try:

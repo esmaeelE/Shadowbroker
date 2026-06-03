@@ -234,12 +234,12 @@ def _fetch_dm_prekey_bundle_from_public_lookup(lookup_token: str) -> dict[str, A
         # Generic UA: any peer-facing crypto request should not carry a
         # fork-specific identifier — that turns prekey lookups into a
         # software-fingerprinting beacon.
-        from services.network_utils import DEFAULT_USER_AGENT
+        from services.network_utils import default_user_agent
         request = urllib.request.Request(
             f"{normalized_peer_url}/api/mesh/dm/prekey-bundle?{encoded}",
             headers={
                 "Accept": "application/json",
-                "User-Agent": DEFAULT_USER_AGENT,
+                "User-Agent": default_user_agent(),
             },
             method="GET",
         )

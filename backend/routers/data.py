@@ -30,6 +30,10 @@ class LayerUpdate(BaseModel):
     layers: dict[str, bool]
 
 
+class LiveUamapOptInUpdate(BaseModel):
+    opted_in: bool
+
+
 _LAST_VIEWPORT_UPDATE: tuple | None = None
 _LAST_VIEWPORT_UPDATE_TS = 0.0
 _VIEWPORT_UPDATE_LOCK = threading.Lock()
@@ -384,6 +388,38 @@ async def update_viewport(vp: ViewportUpdate, request: Request):  # noqa: ARG001
     """Receive frontend map bounds. AIS stream stays global so open-ocean
     vessels are never dropped — the frontend worker handles viewport culling."""
     return {"status": "ok"}
+
+
+@router.get("/api/liveuamap/scraper-status", dependencies=[Depends(require_local_operator)])
+async def api_liveuamap_scraper_status():
+    """Whether LiveUAMap Playwright may run (Windows needs UI opt-in unless env forces)."""
+    from services.liveuamap_settings import liveuamap_scraper_status
+
+    return liveuamap_scraper_status()
+
+
+@router.post("/api/liveuamap/scraper-opt-in", dependencies=[Depends(require_local_operator)])
+@limiter.limit("10/minute")
+async def api_liveuamap_scraper_opt_in(body: LiveUamapOptInUpdate, request: Request):
+    """Persist operator consent for LiveUAMap scraper (#348)."""
+    from services.liveuamap_settings import liveuamap_scraper_status, set_liveuamap_ui_opt_in
+
+    set_liveuamap_ui_opt_in(body.opted_in)
+    if body.opted_in:
+        from services.fetchers._store import is_any_active
+
+        if is_any_active("global_incidents"):
+            threading.Thread(target=_run_liveuamap_refresh, daemon=True).start()
+    return liveuamap_scraper_status()
+
+
+def _run_liveuamap_refresh() -> None:
+    try:
+        from services.fetchers.geo import update_liveuamap
+
+        update_liveuamap()
+    except Exception as e:
+        logger.warning("LiveUAMap refresh after opt-in failed: %s", e)
 
 
 @router.post("/api/layers", dependencies=[Depends(require_local_operator)])
