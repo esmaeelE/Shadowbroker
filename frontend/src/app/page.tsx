@@ -95,6 +95,7 @@ export default function Dashboard() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [tickerOpen, setTickerOpen] = useState(true);
+  const [showMarketsPanel, setShowMarketsPanel] = useState(false);
 
   // Persist UI panel states
   useEffect(() => {
@@ -262,6 +263,8 @@ export default function Dashboard() {
   const backendStatus = useBackendStatus();
   const spaceWeather = useDataKey('space_weather');
   const feedHealth = useFeedHealth();
+  const marketData = useDataKeys(['stocks', 'oil', 'unusual_whales'] as const);
+
   const bootSignals = useDataKeys([
     'bootstrap_ready',
     'commercial_flights',
@@ -760,7 +763,18 @@ export default function Dashboard() {
                 />
               </div>
 
-              {/* GLOBAL TICKER REPLACES MARKETS PANEL - RENDERED OUTSIDE THIS DIV */}
+              {/* GLOBAL MARKETS PANEL */}
+              {showMarketsPanel && secondaryBootReady && (
+                <div className="flex-shrink-0">
+                  <ErrorBoundary name="MarketsPanel">
+                    <MarketsPanel
+                      data={marketData}
+                      focused={rightFocusedPanel === 'markets'}
+                      onFocusChange={(f) => setRightFocusedPanel(f ? 'markets' : null)}
+                    />
+                  </ErrorBoundary>
+                </div>
+              )}
 
               {/* EVENT TIMELINE */}
               {secondaryBootReady && (
@@ -1064,7 +1078,7 @@ export default function Dashboard() {
            transition={{ type: 'spring', damping: 30, stiffness: 250 }}
         >
           <button
-            onClick={() => setTickerOpen(!tickerOpen)}
+            onClick={() => { setTickerOpen(!tickerOpen); setShowMarketsPanel((p) => !p); }}
             className="flex items-center gap-2 px-3 py-1 bg-cyan-950/40 border border-cyan-800/50 border-b-0 rounded-t text-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/60 hover:border-cyan-500/40 transition-colors"
           >
             <div className="text-[7.5px] font-mono tracking-[0.25em] font-bold uppercase">
