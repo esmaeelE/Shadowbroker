@@ -57,6 +57,15 @@ API_REGISTRY = [
         "required": True,
     },
     {
+        "id": "aishub_username",
+        "env_key": "AISHUB_USERNAME",
+        "name": "AISHub Username (backup)",
+        "description": "Free AISHub account username used as a slow REST backup when AISStream is silent or offline. Does not replace live AIS — polls about every 20 minutes into the same ships layer. Register at aishub.net/api.",
+        "category": "Maritime",
+        "url": "https://www.aishub.net/api",
+        "required": False,
+    },
+    {
         "id": "gfw_api_token",
         "env_key": "GFW_API_TOKEN",
         "name": "Global Fishing Watch",
@@ -144,6 +153,15 @@ API_REGISTRY = [
         "description": "Aggregates from NPR, BBC, Al Jazeera, NYT, Reuters, and AP for global news coverage. No key required.",
         "category": "Intelligence",
         "url": None,
+        "required": False,
+    },
+    {
+        "id": "xquik_api_key",
+        "env_key": "XQUIK_API_KEY",
+        "name": "Xquik — API Key",
+        "description": "Server-side key for opt-in X post search in the shared news and threat feed.",
+        "category": "Intelligence",
+        "url": "https://docs.xquik.com/",
         "required": False,
     },
     {
